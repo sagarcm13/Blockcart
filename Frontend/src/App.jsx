@@ -4,6 +4,8 @@ import { QueryClient, QueryClientProvider } from 'react-query';
 import Notification from './components/Notification';
 import Nav from './components/Nav.jsx';
 import Home from './pages/home/Home.jsx';
+import BecomeSeller from './pages/becomeSeller/BecomeSeller.jsx';
+import Logistics from './pages/logistics/Logistics.jsx';
 import List from './pages/list/List.jsx';
 import Cart from './pages/cart/Cart.jsx';
 import Product from './pages/product/Product.jsx';
@@ -36,6 +38,8 @@ function App() {
             <Routes>
               <Route index element={<Home />} />
               <Route path='/' element={<Home />} />
+              <Route path='/seller' element={<BecomeSeller />} />
+              <Route path='/logistics' element={<Logistics />} />
               <Route path='/login' element={<Login onLogin={handleLogin} />} />
               <Route path='/sign_up' element={<SignUp onLogin={handleLogin}/>} />
               <Route path='/cart' element={<Cart />} />

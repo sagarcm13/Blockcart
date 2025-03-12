@@ -36,9 +36,8 @@ export default function Nav({ isAuthenticated, onLogout }) {
         {/* Links */}
         <div className="hidden md:flex space-x-6">
           <Link to="/" className="hover:text-gray-400">Home</Link>
-          <Link to="/shop" className="hover:text-gray-400">Shop</Link>
-          <Link to="/contact" className="hover:text-gray-400">Contact Us</Link>
-          <Link to="/about" className="hover:text-gray-400">About Us</Link>
+          <Link to="/seller" className="hover:text-gray-400">Become a Seller</Link>
+          <Link to="/logistics" className="hover:text-gray-400">Logistics Provider</Link>
         </div>
 
         {/* Cart & User Menu */}
@@ -69,9 +68,8 @@ export default function Nav({ isAuthenticated, onLogout }) {
         }`}
       >
         <Link to="/" className="hover:text-gray-400 block mb-4">Home</Link>
-        <Link to="/shop" className="hover:text-gray-400 block mb-4">Shop</Link>
-        <Link to="/contact" className="hover:text-gray-400 block mb-4">Contact Us</Link>
-        <Link to="/about" className="hover:text-gray-400 block mb-4">About Us</Link>
+        <Link to="/seller" className="hover:text-gray-400 block mb-4">Become a Seller</Link>
+        <Link to="/logistics" className="hover:text-gray-400 block mb-4">Logistics Provider</Link>
         <Link to="/cart" className="hover:text-gray-400 block mb-4">Cart</Link>
         {isAuthenticated ? (
           <button onClick={onLogout} className="hover:text-gray-400 block mb-4">
