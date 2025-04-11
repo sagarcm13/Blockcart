@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import Notification from './components/Notification';
 import Nav from './components/Nav.jsx';
+import ScrollToTop from './components/ScrollToTop.jsx';
 import Home from './pages/home/Home.jsx';
 import BecomeSeller from './pages/becomeSeller/BecomeSeller.jsx';
 import Logistics from './pages/logistics/Logistics.jsx';
@@ -34,6 +35,7 @@ function App() {
         <Notification />
         <div className="flex flex-col min-h-screen">
           <Nav isAuthenticated={isAuthenticated} onLogout={handleLogout} />
+          <ScrollToTop />
           <main className="flex-grow bg-[#18181b]">
             <Routes>
               <Route index element={<Home />} />
