@@ -1,16 +1,25 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+
 import UserMenu from './UserMenu';
 
 // eslint-disable-next-line react/prop-types
 export default function Nav({ isAuthenticated, onLogout }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(()=>{
 
   },[isAuthenticated])
+
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    onLogout();
+    navigate('/');
   };
 
   return (
@@ -37,7 +46,8 @@ export default function Nav({ isAuthenticated, onLogout }) {
         <div className="hidden md:flex space-x-6">
           <Link to="/" className="hover:text-gray-400">Home</Link>
           <Link to="/seller" className="hover:text-gray-400">Become a Seller</Link>
-          <Link to="/logistics" className="hover:text-gray-400">Logistics Provider</Link>
+          <Link to="/seller/dashboard" className="hover:text-gray-400">Seller Dashboard</Link>
+          <Link to="/logistics/dashboard" className="hover:text-gray-400">Logistics Dashboard</Link>
         </div>
 
         {/* Cart & User Menu */}
@@ -69,14 +79,28 @@ export default function Nav({ isAuthenticated, onLogout }) {
       >
         <Link to="/" className="hover:text-gray-400 block mb-4">Home</Link>
         <Link to="/seller" className="hover:text-gray-400 block mb-4">Become a Seller</Link>
-        <Link to="/logistics" className="hover:text-gray-400 block mb-4">Logistics Provider</Link>
+        <Link to="/seller/dashboard" className="hover:text-gray-400 block mb-4">Seller Dashboard</Link>
+        <Link to="/logistics/dashboard" className="hover:text-gray-400 block mb-4">Logistics Dashboard</Link>
         <Link to="/cart" className="hover:text-gray-400 block mb-4">Cart</Link>
         {isAuthenticated ? (
-          <button onClick={onLogout} className="hover:text-gray-400 block mb-4">
-            Logout
-          </button>
+          <div className="space-y-4">
+            <div className="flex items-center">
+              <FaUser className="mr-2" />
+              User
+            </div>
+            <button
+              onClick={handleLogout}
+              className="flex items-center hover:text-gray-400"
+            >
+              <FaSignOutAlt className="mr-2" />
+              Logout
+            </button>
+          </div>
         ) : (
-          <Link to="/login" className="hover:text-gray-400 block mb-4">Login</Link>
+          <div className="space-y-4">
+            <Link to="/login" className="block hover:text-gray-400">Login</Link>
+            <Link to="/sign_up" className="block hover:text-gray-400">Sign Up</Link>
+          </div>
         )}
       </div>
     </nav>
