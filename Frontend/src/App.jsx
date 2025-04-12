@@ -13,6 +13,8 @@ import Product from './pages/product/Product.jsx';
 import Footer from './components/Footer.jsx';
 import Login from './pages/auth/Login.jsx';
 import SignUp from './pages/auth/SignUp.jsx';
+import SellerDashboard from './pages/seller/SellerDashboard.jsx';
+import LogisticsDashboard from './pages/logistics/LogisticsDashboard.jsx';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
 
@@ -47,6 +49,8 @@ function App() {
               <Route path='/cart' element={<Cart />} />
               <Route path='/list' element={<List />} />
               <Route path='/product' element={<Product />} />
+              <Route path='/seller/dashboard' element={<SellerDashboard />} />
+              <Route path='/logistics/dashboard' element={<LogisticsDashboard />} />
             </Routes>
           </main>
           <Footer />
