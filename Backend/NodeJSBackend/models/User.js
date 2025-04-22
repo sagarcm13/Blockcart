@@ -17,6 +17,16 @@ const userSchema = new mongoose.Schema({
     enum: ['buyer', 'seller', 'logistics'], // adjust as needed
     required: true,
   },
+  name: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  phone: {
+    type: Number,
+    required: true,
+    trim: true,
+  },
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

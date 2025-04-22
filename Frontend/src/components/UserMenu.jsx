@@ -10,13 +10,21 @@ export default function UserMenu({ isAuthenticated, onLogout }) {
 
     useEffect(() => {
         const token = localStorage.getItem('token');
-        if (token) {
-            try {
-                const decodedToken = jwtDecode(token);
-                setEmail(decodedToken.email);
-            } catch (error) {
-                console.error('Invalid token', error);
+        if (!token) {
+            setEmail(null);
+            return;
+        }
+        try {
+            const decodedToken = jwtDecode(token);
+            const currentTime = Date.now() / 1000;
+            if (decodedToken.exp && decodedToken.exp < currentTime) {
+                localStorage.removeItem('token');
+                return;
             }
+            setEmail(decodedToken.email);
+        } catch (e) {
+            console.error('Invalid token', e);
+            localStorage.removeItem('token');
         }
     }, [isAuthenticated]);
 

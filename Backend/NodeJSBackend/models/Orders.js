@@ -37,6 +37,32 @@ const orderSchema = new mongoose.Schema({
         lowercase: true,
         trim: true,
     },
+    quantity: {
+        type: Number,
+        required: true,
+        trim: true,
+    },
+    updatedAmount: {
+        type: Number,
+        trim: true,
+    },
+    distance: {
+        type: Number,
+        trim: true,
+    },
+    distancePrice: {
+        type: Number,
+        trim: true,
+    },
+    logisticsProviderEmail: {
+        type: String,
+        trim: true,
+    },
+    pickup: {
+        type: String,
+        trim: true,
+    },
+
 }, { timestamps: true });
 
 module.exports = mongoose.model('Order', orderSchema);

@@ -11,7 +11,7 @@ export default function Login({ onLogin }) {
     const navigate = useNavigate();
     const [user, setUser] = useState('buyer');
     const mutation = useMutation((data) =>
-        axiosClient.post("/login", data), {
+        axiosClient.post("/api/auth/login", data), {
         onSuccess: (response) => {
             console.log('Success:', response.data);
             localStorage.setItem("token", response.data.token);

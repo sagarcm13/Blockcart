@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.29;
+pragma solidity ^0.8.28;
 
 contract ProductRegistry {
     struct Product {
@@ -12,6 +12,7 @@ contract ProductRegistry {
         uint price;
         uint count;
         string[] imageHashes;
+        string[] features;
         bool isAvailable;
     }
 
@@ -38,6 +39,7 @@ contract ProductRegistry {
         uint _price,
         uint _count,
         string[] memory _imageHashes,
+        string[] memory _features,
         string memory _sellerEmail
     ) public {
         require(_price > 0, "Price must be greater than zero");
@@ -46,13 +48,14 @@ contract ProductRegistry {
         products[productCount] = Product({
             id: productCount,
             seller: msg.sender,
-            sellerEmail: _sellerEmail, // <-- Store email
+            sellerEmail: _sellerEmail,
             name: _name,
             description: _description,
             productType: _productType,
             price: _price,
             count: _count,
             imageHashes: _imageHashes,
+            features: _features,
             isAvailable: true
         });
 
@@ -67,7 +70,6 @@ contract ProductRegistry {
         );
     }
 
-    /// @notice Update availability of one of your products
     function updateProductStatus(uint _productId, bool _isAvailable) public {
         Product storage product = products[_productId];
         require(product.seller == msg.sender, "Not authorized");
@@ -76,7 +78,6 @@ contract ProductRegistry {
         emit ProductAvailabilityUpdated(_productId, _isAvailable);
     }
 
-    /// @notice Update the count of one of your products
     function updateProductCount(uint _productId, uint _newCount) public {
         Product storage product = products[_productId];
         require(product.seller == msg.sender, "Not authorized");
@@ -85,12 +86,10 @@ contract ProductRegistry {
         emit ProductCountUpdated(_productId, _newCount);
     }
 
-    /// @notice Get a single product by its ID
     function getProduct(uint _productId) public view returns (Product memory) {
         return products[_productId];
     }
 
-    /// @notice Get all your listed products
     function getMyProducts() public view returns (Product[] memory) {
         uint[] memory ids = userProductIds[msg.sender];
         Product[] memory myProducts = new Product[](ids.length);
@@ -101,10 +100,7 @@ contract ProductRegistry {
         return myProducts;
     }
 
-    /// @notice Search all products whose description contains `_keyword`
-    function getProductsByKeyword(
-        string memory _keyword
-    ) public view returns (Product[] memory) {
+    function getProductsByKeyword(string memory _keyword) public view returns (Product[] memory) {
         uint matchCount = 0;
 
         for (uint i = 1; i <= productCount; i++) {
@@ -125,22 +121,91 @@ contract ProductRegistry {
         return results;
     }
 
-    /// @notice Get seller email by product ID
-    function getSellerEmailByProductId(
-        uint _productId
-    ) public view returns (string memory) {
-        require(
-            _productId > 0 && _productId <= productCount,
-            "Invalid product ID"
-        );
+    function getProductsBySellerEmail(string memory _email) public view returns (Product[] memory) {
+        uint matchCount = 0;
+
+        for (uint i = 1; i <= productCount; i++) {
+            if (_compareStrings(products[i].sellerEmail, _email)) {
+                matchCount++;
+            }
+        }
+
+        Product[] memory results = new Product[](matchCount);
+        uint idx = 0;
+
+        for (uint i = 1; i <= productCount; i++) {
+            if (_compareStrings(products[i].sellerEmail, _email)) {
+                results[idx] = products[i];
+                idx++;
+            }
+        }
+
+        return results;
+    }
+
+    function getSellerEmailByProductId(uint _productId) public view returns (string memory) {
+        require(_productId > 0 && _productId <= productCount, "Invalid product ID");
         return products[_productId].sellerEmail;
     }
 
-    /// @dev Internal helper to check if `where` contains substring `what`
-    function _contains(
-        string memory what,
-        string memory where
-    ) internal pure returns (bool) {
+    function getSellerAddressByProductId(uint _productId) public view returns (address) {
+        require(_productId > 0 && _productId <= productCount, "Invalid product ID");
+        return products[_productId].seller;
+    }
+
+    /// @notice Get all products that have a given feature
+    function getProductsByFeature(string memory _feature) public view returns (Product[] memory) {
+        uint matchCount = 0;
+
+        for (uint i = 1; i <= productCount; i++) {
+            if (_arrayContains(products[i].features, _feature)) {
+                matchCount++;
+            }
+        }
+
+        Product[] memory results = new Product[](matchCount);
+        uint idx = 0;
+
+        for (uint i = 1; i <= productCount; i++) {
+            if (_arrayContains(products[i].features, _feature)) {
+                results[idx] = products[i];
+                idx++;
+            }
+        }
+
+        return results;
+    }
+
+    /// @notice Get all products of a given product type
+    function getProductsByType(string memory _productType) public view returns (Product[] memory) {
+        uint matchCount = 0;
+
+        for (uint i = 1; i <= productCount; i++) {
+            if (_compareStrings(products[i].productType, _productType)) {
+                matchCount++;
+            }
+        }
+
+        Product[] memory results = new Product[](matchCount);
+        uint idx = 0;
+
+        for (uint i = 1; i <= productCount; i++) {
+            if (_compareStrings(products[i].productType, _productType)) {
+                results[idx] = products[i];
+                idx++;
+            }
+        }
+
+        return results;
+    }
+
+    // INTERNAL HELPERS
+
+    function _compareStrings(string memory a, string memory b) internal pure returns (bool) {
+        return keccak256(bytes(a)) == keccak256(bytes(b));
+    }
+
+    function _contains(string memory what, string memory where) internal pure returns (bool) {
         bytes memory whatBytes = bytes(what);
         bytes memory whereBytes = bytes(where);
 
@@ -164,49 +229,12 @@ contract ProductRegistry {
         return false;
     }
 
-    /// @notice Get all products listed by a seller with a given email
-    function getProductsBySellerEmail(
-        string memory _email
-    ) public view returns (Product[] memory) {
-        uint matchCount = 0;
-
-        // First pass: count matches
-        for (uint i = 1; i <= productCount; i++) {
-            if (_compareStrings(products[i].sellerEmail, _email)) {
-                matchCount++;
+    function _arrayContains(string[] memory arr, string memory target) internal pure returns (bool) {
+        for (uint i = 0; i < arr.length; i++) {
+            if (_compareStrings(arr[i], target)) {
+                return true;
             }
         }
-
-        // Second pass: collect matching products
-        Product[] memory results = new Product[](matchCount);
-        uint idx = 0;
-
-        for (uint i = 1; i <= productCount; i++) {
-            if (_compareStrings(products[i].sellerEmail, _email)) {
-                results[idx] = products[i];
-                idx++;
-            }
-        }
-
-        return results;
-    }
-
-    /// @dev Internal helper to compare two strings for equality
-    function _compareStrings(
-        string memory a,
-        string memory b
-    ) internal pure returns (bool) {
-        return keccak256(bytes(a)) == keccak256(bytes(b));
-    }
-
-    /// @notice Get seller address by product ID
-    function getSellerAddressByProductId(
-        uint _productId
-    ) public view returns (address) {
-        require(
-            _productId > 0 && _productId <= productCount,
-            "Invalid product ID"
-        );
-        return products[_productId].seller;
+        return false;
     }
 }

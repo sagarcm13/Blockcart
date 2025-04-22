@@ -5,11 +5,12 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const User = require('./models/User');
 const Order = require('./models/Orders');
+const cors = require('cors');
 
 const app = express();
 const port = process.env.PORT || 3000;
 const SALT_ROUNDS = 10;
-
+app.use(cors());
 app.use(express.json());
 
 mongoose.connect(process.env.MONGO_URI, { dbName: 'BlockCart' })
@@ -40,13 +41,15 @@ function authMiddleware(req, res, next) {
 // 3️⃣ Register endpoint
 app.post('/api/auth/register', async (req, res) => {
     try {
-        const { email, password, userType } = req.body;
+        const { email, password, userType, name, phone } = req.body;
         if (await User.findOne({ email })) {
             return res.status(400).json({ message: 'Email already in use' });
         }
         const hashed = await bcrypt.hash(password, SALT_ROUNDS);
-        await new User({ email, password: hashed, userType }).save();
-        res.status(201).json({ message: 'User registered' });
+        await new User({ email, password: hashed, userType, name, phone }).save();
+        const payload = { email, userType };
+        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+        res.status(201).json({ token });
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Server error' });
@@ -66,7 +69,6 @@ app.post('/api/auth/login', async (req, res) => {
 
         const payload = { email: user.email, userType: user.userType };
         const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
-
         res.json({ token });
     } catch (err) {
         console.error(err);
@@ -84,10 +86,10 @@ app.get('/api/dashboard', authMiddleware, (req, res) => {
     }
 });
 
-app.post('/api/orders',  async (req, res) => {
+app.post('/api/orders', async (req, res) => {
     try {
-        const { orderId, productId, destination, orderStatus, email } = req.body;
-        const order = new Order({ orderId, productId, destination, orderStatus, email });
+        const { orderId, productId, destination, orderStatus, email, quantity } = req.body;
+        const order = new Order({ orderId, productId, destination, orderStatus, email, quantity });
         await order.save();
         res.status(201).json(order);
     } catch (err) {
@@ -111,17 +113,15 @@ app.get('/api/orders/:orderId', authMiddleware, async (req, res) => {
     }
 });
 
-app.post('/api/orderedProductsByIds', async (req, res) => {
+app.post('/api/orderedProductsByIds', async (req, res) => { // seller gets ordered products by ids
     try {
         const { productIds } = req.body;
-
         if (!Array.isArray(productIds)) {
             return res.status(400).json({ message: 'productIds must be an array' });
         }
         const existingOrders = await Order.find({
             productId: { $in: productIds }
         });
-
         res.status(200).json({ existingOrders });
     } catch (err) {
         console.error('Error fetching product IDs:', err);
@@ -129,15 +129,71 @@ app.post('/api/orderedProductsByIds', async (req, res) => {
     }
 });
 
-app.get('/api/myOrders', async (req, res) => {
+app.get('/api/myOrders', async (req, res) => {      // user gets all orders by email
     try {
         const email = req.query.email;
-        console.log(email);
         if (!email) {
             return res.status(400).json({ message: 'Email is invalid' });
         }
         const userOrders = await Order.find({ email });
         res.status(200).json({ userOrders });
+    } catch (err) {
+        console.error('Error fetching product IDs:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+app.put('/api/orders/:orderId', async (req, res) => {   // seller updates order amount and status
+    try {
+        const { orderId } = req.params;
+        const { updatedAmount } = req.body;
+        const { orderStatus } = req.body;
+        const { distance } = req.body;
+        const { distancePrice } = req.body;
+        const { logisticsProviderEmail } = req.body;
+        const { pickup } = req.body;
+
+        const order = await Order.findOneAndUpdate(
+            { orderId },
+            { updatedAmount, orderStatus, distance, distancePrice, logisticsProviderEmail, pickup },
+            { new: true }
+        );
+
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+
+        res.status(200).json(order);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server error' });
+    }
+})
+
+app.put('/api/updateOrderStatus/:orderId', async (req, res) => {   // seller updates order amount and status
+    try {
+        const { orderId } = req.params;
+        const { orderStatus } = req.body;
+        const order = await Order.findOneAndUpdate(
+            { orderId },
+            { orderStatus },
+            { new: true }
+        );
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+        res.status(200).json(order);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server error' });
+    }
+})
+
+app.get("/api/assignedOrders", async (req, res) => { // admin gets all orders
+    const logisticsProviderEmail = req.query.logisticsProviderEmail;
+    try {
+        const orders = await Order.find({ logisticsProviderEmail });
+        res.status(200).json({ orders });
     } catch (err) {
         console.error('Error fetching product IDs:', err);
         res.status(500).json({ message: 'Server error' });

@@ -8,9 +8,9 @@ export default function Nav({ isAuthenticated, onLogout }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(()=>{
+  useEffect(() => {
 
-  },[isAuthenticated])
+  }, [isAuthenticated])
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -45,16 +45,17 @@ export default function Nav({ isAuthenticated, onLogout }) {
         {/* Links */}
         <div className="hidden md:flex space-x-6">
           <Link to="/" className="hover:text-gray-400">Home</Link>
-          <Link to="/seller" className="hover:text-gray-400">Become a Seller</Link>
-          <Link to="/seller/dashboard" className="hover:text-gray-400">Seller Dashboard</Link>
-          <Link to="/logistics/dashboard" className="hover:text-gray-400">Logistics Dashboard</Link>
+          <Link to="/seller" className="hover:text-gray-400">Seller Dashboard</Link>
+          <Link to="/logistics" className="hover:text-gray-400">Logistics Dashboard</Link>
         </div>
 
         {/* Cart & User Menu */}
-        <div className="flex space-x-6 items-center">
-          <Link to="/cart" className="hover:text-gray-400">
-            <i className="fas fa-shopping-cart"></i> Cart
-          </Link>
+        <div className="hidden md:flex space-x-6 items-center">
+          <Link to="/cart" className="hover:text-gray-400">Cart</Link>
+          <Link to="/orders" className="hover:text-gray-400">My Orders</Link>
+          <UserMenu isAuthenticated={isAuthenticated} onLogout={onLogout} />
+        </div>
+        <div className="flex md:hidden space-x-6">
           <UserMenu isAuthenticated={isAuthenticated} onLogout={onLogout} />
         </div>
 
@@ -73,26 +74,20 @@ export default function Nav({ isAuthenticated, onLogout }) {
       {/* Mobile Menu */}
       <div
         id="mobile-menu"
-        className={`md:hidden absolute top-full left-0 w-full bg-gray-900 text-white p-4 transition-all duration-300 ease-in-out ${
-          isMobileMenuOpen ? 'block' : 'hidden'
-        }`}
+        className={`md:hidden absolute top-full left-0 w-full bg-gray-900 text-white p-4 transition-all duration-300 ease-in-out ${isMobileMenuOpen ? 'block' : 'hidden'
+          }`}
       >
         <Link to="/" className="hover:text-gray-400 block mb-4">Home</Link>
-        <Link to="/seller" className="hover:text-gray-400 block mb-4">Become a Seller</Link>
-        <Link to="/seller/dashboard" className="hover:text-gray-400 block mb-4">Seller Dashboard</Link>
-        <Link to="/logistics/dashboard" className="hover:text-gray-400 block mb-4">Logistics Dashboard</Link>
+        <Link to="/seller" className="hover:text-gray-400 block mb-4">Seller Dashboard</Link>
+        <Link to="/logistics" className="hover:text-gray-400 block mb-4">Logistics Dashboard</Link>
         <Link to="/cart" className="hover:text-gray-400 block mb-4">Cart</Link>
         {isAuthenticated ? (
           <div className="space-y-4">
-            <div className="flex items-center">
-              <FaUser className="mr-2" />
-              User
-            </div>
+            <Link to="/orders" className="hover:text-gray-400 block mb-4">My Orders</Link>
             <button
               onClick={handleLogout}
               className="flex items-center hover:text-gray-400"
             >
-              <FaSignOutAlt className="mr-2" />
               Logout
             </button>
           </div>

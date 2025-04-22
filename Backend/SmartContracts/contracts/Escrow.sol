@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.26;
+pragma solidity ^0.8.28;
 
 contract Escrow {
     struct Order {
@@ -29,7 +29,7 @@ contract Escrow {
         uint _orderId,
         address _seller,
         address _logisticsProvider,
-        uint _amount
+        uint _amount    // amount to be paid by user i.e. product price + logistics fee / 2
     ) public payable {
         require(msg.value > 0, "Payment required");
         require(msg.value == _amount, "Incorrect payment amount");
@@ -47,17 +47,28 @@ contract Escrow {
         emit PaymentDeposited(_orderId, msg.sender, _amount);
     }
 
-    function confirmDelivery(uint _orderId) public {
+    function confirmDelivery(uint _orderId, uint logisticsFee) public {     // logistics fee parameter
+        Order storage order = orders[_orderId];
+
+        require(msg.sender == order.buyer, "Only buyer can confirm delivery");
+        require(order.isPaid, "Payment not deposited");
+        require(!order.isDelivered, "Order already delivered");
         require(
-            msg.sender == orders[_orderId].buyer,
-            "Only buyer can confirm delivery"
+            logisticsFee <= order.amount,
+            "Logistics fee exceeds order amount"
         );
-        require(orders[_orderId].isPaid, "Payment not deposited");
+        require(
+            order.logisticsProvider != address(0),
+            "Invalid logistics provider"
+        );
 
-        orders[_orderId].isDelivered = true;
-        payable(orders[_orderId].seller).transfer(orders[_orderId].amount);
+        uint sellerAmount = order.amount - logisticsFee;
+        order.isDelivered = true;
 
-        emit OrderConfirmed(_orderId, orders[_orderId].seller);
+        payable(order.seller).transfer(sellerAmount);
+        payable(order.logisticsProvider).transfer(logisticsFee);
+
+        emit OrderConfirmed(_orderId, order.seller);
     }
 
     function cancelOrder(uint _orderId) public {

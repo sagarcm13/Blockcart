@@ -1,67 +1,17 @@
 import { useEffect, useState } from 'react';
-import { useCartDetail } from '../../api';
-import { useNavigate, Link } from 'react-router-dom';
-import { isTokenExpired } from '../../utils/jwtCheck';
-import PopUp from '../../components/PopUp';
-import { useMutation } from 'react-query';
-import axiosClient from './../../axios';
-import { notify } from '../../components/Notification';
-import ErrorUI from './../../components/ErrorUI.jsx'
-import LoaderWithKeyframes from './../../components/Loaders.jsx'
+import { Link } from 'react-router-dom';
+// import { notify } from '../../components/Notification';
+// import ErrorUI from './../../components/ErrorUI.jsx'
+// import LoaderWithKeyframes from './../../components/Loaders.jsx'
 
 export default function Cart() {
   const [list, setList] = useState([]);
   const [cartData, setCartData] = useState([]);
   const [totalPrice, setTotalPrice] = useState(0);
-  const [isTokenChecked, setIsTokenChecked] = useState(false);
-  const navigate = useNavigate();
-  const [isPopupOpen, setIsPopupOpen] = useState(false);
-
-  const mutation = useMutation((data) =>
-    axiosClient.delete("/removeCartItem", { headers: { 'x-auth-token': localStorage.getItem("token") }, data }), {
-    onSuccess: (response) => {
-      notify('Item removed from cart', 'success');
-      console.log('Success:', response.data);
-    },
-    onError: (error) => {
-      notify('Failed to remove item from cart', 'error');
-      console.error('Error:', error);
-    }
-  });
-
-  const handleOpenPopup = () => setIsPopupOpen(true);
-  const handleClosePopup = () => setIsPopupOpen(false);
-
-  const handleConfirm = () => {
-    console.log('Confirmed!');
-    setIsPopupOpen(false);
-    navigate('/login');
-  };
-
-  useEffect(() => {
-    if (!isTokenChecked) {
-      const token = localStorage.getItem('token');
-      if (!token || isTokenExpired(token)) {
-        handleOpenPopup();
-      } else {
-        setIsTokenChecked(true);
-      }
-    }
-  }, [isTokenChecked, navigate]);
-
-  const { data, isFetched, isError, error } = useCartDetail();
-
-  useEffect(() => {
-    if (data) {
-      let datalist = data.map(obj => ({ ...obj, value: 1 }));
-      setCartData(datalist);
-    }
-  }, [data]);
 
   const handleRemove = (id) => {
     const removed = cartData.filter(o => o._id !== id);
     setCartData(removed);
-    mutation.mutate({ id });
   };
 
   useEffect(() => {
@@ -121,21 +71,12 @@ export default function Cart() {
     setList(items);
   }, [cartData]);
 
-  if (isPopupOpen) {
-    return (<PopUp isOpen={isPopupOpen} onClose={handleClosePopup} onConfirm={handleConfirm} />)
-  }
-
   return (
     <div className="p-5">
       <div className='text-3xl font-bold text-center text-white mb-8'>Shopping Cart</div>
       <div className='text-2xl text-gray-300 mb-8 text-center'>
         Subtotal ({cartData.length} items): <span className="text-white">₹{totalPrice}</span>
       </div>
-      {cartData.length < 1 && isFetched && !isError && (
-        <div className='text-xl text-white text-center'>No cart items found</div>
-      )}
-      {isError && (<ErrorUI errorMessage={error.message} />)}
-      {!isFetched && <LoaderWithKeyframes />}
       <ol className='list-decimal'>
         {list}
       </ol>
