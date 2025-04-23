@@ -189,6 +189,25 @@ app.put('/api/updateOrderStatus/:orderId', async (req, res) => {   // seller upd
     }
 })
 
+app.put('/api/updatePaymentStatus/:orderId', async (req, res) => {   // buyer updates order amount and status
+    try {
+        const { orderId } = req.params;
+        const { paymentStatus } = req.body;
+        const order = await Order.findOneAndUpdate(
+            { orderId },
+            { paymentStatus },
+            { new: true }
+        );
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+        res.status(200).json({ message: 'Payment status updated successfully' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server error' });
+    }
+})
+
 app.get("/api/assignedOrders", async (req, res) => { // admin gets all orders
     const logisticsProviderEmail = req.query.logisticsProviderEmail;
     try {

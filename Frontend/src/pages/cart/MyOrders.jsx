@@ -34,53 +34,61 @@ export default function Orders() {
         }
     }, []);
 
+    const fetchAndCombine = async () => {
+        try {
+            const resp = await axiosClient.get(
+                `/api/myOrders?email=${encodeURIComponent(email)}`
+            );
+            const userOrders = resp.data.userOrders;
+            const combined = await Promise.all(
+                userOrders.map(async (order) => {
+                    // on‑chain call
+                    const raw = await productRegistry.getProduct(order.productId);
+                    const product = {
+                        id: raw[0].toString(),
+                        address: raw[1],
+                        email: raw[2],
+                        name: raw[3],
+                        description: raw[4],
+                        productType: raw[5],
+                        price: raw[6].toString(),
+                        count: raw[7].toString(),
+                        imageHashes: raw[8],
+                        features: raw[9],
+                    };
+                    return {
+                        orderId: order.orderId,
+                        timestamp: order.timestamp,
+                        status: order.orderStatus,
+                        quantity: order.quantity,
+                        destination: order.destination,
+                        distance: order.distance,
+                        distancePrice: order.distancePrice,
+                        logisticsProviderEmail: order.logisticsProviderEmail,
+                        paymentStatus: order.paymentStatus,
+                        product,
+                    };
+                })
+            );
+            setOrders(combined);
+        } catch (err) {
+            console.error('Error fetching/combining orders:', err);
+        }
+    };
     useEffect(() => {
         if (!email) return;
 
-        const fetchAndCombine = async () => {
-            try {
-                const resp = await axiosClient.get(
-                    `/api/myOrders?email=${encodeURIComponent(email)}`
-                );
-                const userOrders = resp.data.userOrders;
-                const combined = await Promise.all(
-                    userOrders.map(async (order) => {
-                        // on‑chain call
-                        const raw = await productRegistry.getProduct(order.productId);
-                        const product = {
-                            id: raw[0].toString(),
-                            address: raw[1],
-                            email: raw[2],
-                            name: raw[3],
-                            description: raw[4],
-                            productType: raw[5],
-                            price: raw[6].toString(),
-                            count: raw[7].toString(),
-                            imageHashes: raw[8],
-                            features: raw[9],
-                        };
-                        return {
-                            orderId: order.orderId,
-                            timestamp: order.timestamp,
-                            status: order.orderStatus,
-                            quantity: order.quantity,
-                            destination: order.destination,
-                            distance: order.distance,
-                            distancePrice: order.distancePrice,
-                            logisticsProviderEmail: order.logisticsProviderEmail,
-                            product,
-                        };
-                    })
-                );
-
-                setOrders(combined);
-            } catch (err) {
-                console.error('Error fetching/combining orders:', err);
-            }
-        };
-
         fetchAndCombine();
-    }, [email, productRegistry]);
+    }, [email]);
+
+    const setPaymentStatus = async (orderId, status) => {
+        const updateStatus = await axiosClient.put(`/api/updatePaymentStatus/${orderId}`, { paymentStatus: status });
+        if (updateStatus.status === 200) {
+            console.log('Order status updated:', status);
+        } else {
+            console.error('Error updating order status:', updateStatus);
+        }
+    }
 
     // 3) Mark as received (example)
     const handleReceived = async (order) => {
@@ -95,6 +103,7 @@ export default function Orders() {
             console.log("✅ confirmDelivery receipt", receipt);
             alert("Product received!");
             handleStatusChange(order.orderId, 'delivered');
+            fetchAndCombine();
         } catch (error) {
             console.error("Error confirming delivery:", error);
             alert("Transaction failed");
@@ -127,6 +136,8 @@ export default function Orders() {
             const receipt = await tx.wait();
             console.log("✅ depositPayment receipt", receipt);
             alert("Payment deposited!");
+            setPaymentStatus(order.orderId, true);
+            fetchAndCombine();
         } catch (err) {
             console.error("depositPayment failed", err);
             alert("Transaction failed");
@@ -136,13 +147,6 @@ export default function Orders() {
         const updateStatus = await axiosClient.put(`/api/updateOrderStatus/${orderId}`, { orderStatus: newStatus.toLowerCase() });
         if (updateStatus.status === 200) {
             console.log('Order status updated:', newStatus);
-            setOrders((os) =>
-                os.map((o) =>
-                    o.orderId === orderId
-                        ? { ...o, status: newStatus.toLowerCase() }
-                        : o
-                )
-            );
         } else {
             console.error('Error updating order status:', updateStatus);
         }
@@ -158,7 +162,8 @@ export default function Orders() {
                 const receipt = await tx.wait();
                 console.log("✅ Order Canceled", receipt);
                 alert("Payment deposited!");
-                handleStatusChange(order.orderId, 'shipped');
+                handleStatusChange(order.orderId, 'cancelled');
+                fetchAndCombine();
             } catch (err) {
                 console.log("depositPayment failed", err);
             }
@@ -232,11 +237,7 @@ export default function Orders() {
                                     Total Price : {o.distancePrice ? `${o.distancePrice * o.distance / 2 + o.product.price * o.quantity} ` : "No details"} i.e. product price + half logistics price
                                 </p>
 
-                                {(o.status === 'accepted') ?
-                                    <button onClick={() => { handleDepositAmount(o) }} className='mt-4 mx-2 px-5 py-2 bg-green-600 hover:bg-green-500 text-white rounded-md font-medium transition-all'>
-                                        Deposit Payment
-                                    </button> : <></>}
-                                {(o.status === 'shipped') ? (
+                                {(o.status !== 'delivered' && o.status !== 'cancelled') ? ((o.paymentStatus) ?
                                     <>
                                         <button
                                             className="mt-4 mx-2 px-5 py-2 bg-green-600 hover:bg-green-500 text-white rounded-md font-medium transition-all"
@@ -247,10 +248,12 @@ export default function Orders() {
                                         <button className="mt-4 mx-2 px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md font-medium transition-all" onClick={() => handleCancel(o)}>
                                             Cancel Order
                                         </button>
-                                    </>
-                                ) : (
-                                    <></>
-                                )}
+                                    </> :
+                                    <button onClick={() => { handleDepositAmount(o) }} className='mt-4 mx-2 px-5 py-2 bg-green-600 hover:bg-green-500 text-white rounded-md font-medium transition-all'>
+                                        Deposit Payment
+                                    </button>) :
+                                    (<></>)
+                                }
                                 {(o.status === 'delivered') ? (
                                     <div className="mt-4 text-green-400 font-bold flex items-center">
                                         ✔ Product Received

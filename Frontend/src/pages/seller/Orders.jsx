@@ -145,6 +145,7 @@ export default function Orders() {
             if (response.status === 200) {
                 console.log('Logistics assignment submitted successfully:', response.data);
                 alert('Logistics assignment submitted successfully');
+                fetchOrders();
             } else {
                 console.error('Error submitting logistics assignment:', response.data);
                 alert('Error submitting logistics assignment');

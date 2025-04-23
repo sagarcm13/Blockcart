@@ -6,7 +6,7 @@ export default function AssignedOrders() {
     const [assignedOrders, setAssignedOrders] = useState([]);
     const [logisticsEmail, setEmail] = useState(null);
     const navigate = useNavigate();
-    const statusOptions = ['Accepted', 'Shipped', 'Cancelled'];
+    const statusOptions = ['Accepted', 'Shipped'];
 
     const handleStatusChange = async (orderId, newStatus) => {
         const updateStatus = await axiosClient.put(`/api/updateOrderStatus/${orderId}`, { orderStatus: newStatus.toLowerCase() });
