@@ -4,6 +4,7 @@ import { jwtDecode } from 'jwt-decode';
 import axiosClient from '../../axios';
 import { useContracts } from './../../components/useContracts';
 import { ethers } from 'ethers';
+import { jsPDF } from 'jspdf';
 
 export default function Orders() {
     const [orders, setOrders] = useState([]);
@@ -102,8 +103,8 @@ export default function Orders() {
             const receipt = await txn.wait();
             console.log("✅ confirmDelivery receipt", receipt);
             alert("Product received!");
-            handleStatusChange(order.orderId, 'delivered');
-            fetchAndCombine();
+            await handleStatusChange(order.orderId, 'delivered');
+            await fetchAndCombine();
         } catch (error) {
             console.error("Error confirming delivery:", error);
             alert("Transaction failed");
@@ -136,8 +137,8 @@ export default function Orders() {
             const receipt = await tx.wait();
             console.log("✅ depositPayment receipt", receipt);
             alert("Payment deposited!");
-            setPaymentStatus(order.orderId, true);
-            fetchAndCombine();
+            await setPaymentStatus(order.orderId, true);
+            await fetchAndCombine();
         } catch (err) {
             console.error("depositPayment failed", err);
             alert("Transaction failed");
@@ -169,6 +170,106 @@ export default function Orders() {
             }
         }
     }
+
+    function handleGenerateInvoice(order) {
+        const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+        let y = 40;
+        const lineHeight = 14;
+
+        // ── Company Header
+        doc.setFont('helvetica', 'bold').setFontSize(20);
+        doc.text("Blockcart", 40, y);
+        doc.setFont('helvetica', 'normal').setFontSize(12);
+        doc.text("A decentralized E-Commerce", 40, y + 20);
+
+        // ── Invoice Title & Metadata
+        doc.setFont('helvetica', 'bold').setFontSize(16);
+        doc.text("INVOICE", 550, y, { align: 'right' });
+        doc.setFont('helvetica', 'normal').setFontSize(10);
+        doc.text(`Invoice #: ${order.orderId}`, 550, y + 20, { align: 'right' });
+        doc.text(
+            `Date: ${new Date(order.orderId).toLocaleDateString()}`,
+            550,
+            y + 35,
+            { align: 'right' }
+        );
+
+        // ── Divider
+        doc.setLineWidth(0.5).line(40, y + 50, 555, y + 50);
+        y += 80;
+
+        // ── Bill To
+        doc.setFont('helvetica', 'bold').setFontSize(12).text("Bill To:", 40, y);
+        doc.setFont('helvetica', 'normal').text(email || "—", 100, y);
+        y += 30;
+
+        // ── Table Header
+        doc.setFont('helvetica', 'bold').setFontSize(12);
+        doc.text("Description", 40, y);
+        doc.text("Qty", 300, y, { align: 'right' });
+        doc.text("Unit Price", 380, y, { align: 'right' });
+        doc.text("Total", 550, y, { align: 'right' });
+        y += 8;
+        doc.setLineWidth(0.3).line(40, y, 555, y);
+        y += 20;
+
+        // ── Line Item: Product (with wrapping)
+        const productTotal = Number(order.product.price) * order.quantity;
+        const descColWidth = 150;
+        doc.setFont('helvetica', 'normal').setFontSize(12);
+
+        // wrap long product names
+        const nameLines = doc.splitTextToSize(order.product.name, descColWidth);
+        doc.text(nameLines, 40, y);
+
+        // qty / unit price / total on first line
+        doc.text(String(order.quantity), 300, y, { align: 'right' });
+        doc.text(`${order.product.price} gwei`, 380, y, { align: 'right' });
+        doc.text(`${productTotal} gwei`, 550, y, { align: 'right' });
+
+        // advance y
+        y += nameLines.length * lineHeight + 10;
+
+        // ── Line Item: Logistics
+        const logisticsUnitCost = Number(order.distancePrice);
+        const halfLogistics = (order.distance * logisticsUnitCost) / 2;
+        const fullLogistics = order.distance * logisticsUnitCost;
+        doc.text("Logistics (½ cost)", 40, y);
+        doc.text(
+            `${order.distance} km @ ${logisticsUnitCost} gwei/km`,
+            300,
+            y,
+            { align: 'right' }
+        );
+        doc.text(`${halfLogistics} gwei`, 550, y, { align: 'right' });
+        y += 40;
+
+        // ── Totals
+        doc.setFont('helvetica', 'bold');
+        doc.text("Subtotal", 380, y, { align: 'right' });
+        doc.text(`${productTotal} gwei`, 550, y, { align: 'right' });
+        y += 20;
+        doc.setFontSize(14);
+        doc.text("Amount payable", 380, y, { align: 'right' });
+        doc.text(
+            `${productTotal + halfLogistics} gwei`,
+            550,
+            y,
+            { align: 'right' }
+        );
+        y += 40;
+        doc.setFont('helvetica', 'normal').setFontSize(10);
+        doc.text(`Total logistics price: ${fullLogistics} gwei`, 40, y);
+        y += 40;
+        doc.setFont('helvetica', 'italic').setFontSize(10);
+        doc.text(
+            "Thank you for choosing Blockcart! Visit us again",
+            40,
+            y
+        );
+        doc.save(`invoice_${order.orderId}.pdf`);
+    }
+
     return (
         <div className="p-6 max-w-5xl mx-auto">
             <h1 className="text-4xl font-extrabold text-center text-white mb-10">
@@ -195,6 +296,14 @@ export default function Orders() {
                                     Placed on: {new Date(o.orderId).toLocaleDateString()}
                                 </p>
                             </div>
+                            {o.status === 'delivered' && (
+                                <button
+                                    onClick={() => handleGenerateInvoice(o)}
+                                    className="mt-4 mx-2 px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-md font-medium transition-all"
+                                >
+                                    Generate Invoice
+                                </button>
+                            )}
                             <span
                                 className={`px-4 py-1 rounded-full text-sm font-semibold ${o.status === 'delivered'
                                     ? 'bg-green-700 text-green-200'

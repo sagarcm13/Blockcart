@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { jwtDecode } from 'jwt-decode';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 // eslint-disable-next-line react/prop-types
 export default function UserMenu({ isAuthenticated, onLogout }) {
     const [email, setEmail] = useState(null);
     const [menuOpen, setMenuOpen] = useState(false);
     const navigate = useNavigate();
-
+    const location = useLocation();
     useEffect(() => {
         const token = localStorage.getItem('token');
         if (!token) {
@@ -26,7 +26,7 @@ export default function UserMenu({ isAuthenticated, onLogout }) {
             console.error('Invalid token', e);
             localStorage.removeItem('token');
         }
-    }, [isAuthenticated]);
+    }, [isAuthenticated, location.pathname]);
 
     const handleLogout = () => {
         localStorage.removeItem('token');

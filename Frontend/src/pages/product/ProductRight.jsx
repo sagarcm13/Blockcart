@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import AddToCart from './../../components/AddToCart'
 import { useNavigate } from 'react-router-dom';
 // eslint-disable-next-line react/prop-types
 export default function ProductRight({ data }) {
@@ -12,6 +11,25 @@ export default function ProductRight({ data }) {
         console.log(productData.id);
         navigate('/checkout', { state: { id: productData.id } });
     }
+    const handleAddToCart = (id) => {
+        const numericId = Number(id);
+        let existing = [];
+        try {
+            existing = JSON.parse(localStorage.getItem('cart') || '[]');
+            if (!Array.isArray(existing)) existing = [];
+        } catch {
+            existing = [];
+        }
+        existing = existing.map(item => Number(item));
+        const merged = [...existing, numericId];
+        const deduped = Array.from(new Set(merged));
+        localStorage.setItem('cart', JSON.stringify(deduped));
+        if (existing.includes(numericId)) {
+            alert('This item was already in your cart.');
+        } else {
+            alert('Added to cart!');
+        }
+    };
     if (productData === undefined) {
         return <div>Loading...</div>;
     } else {
@@ -28,7 +46,7 @@ export default function ProductRight({ data }) {
                         <li className="text-white text-2xl font-thin">{productData.features[3]}</li>
                     </ul>
                     <div className="m-10 flex justify-center">
-                        <AddToCart id={productData._id} />
+                        <button onClick={()=>{handleAddToCart(productData._id)}} className='bg-teal-400 m-4 text-xl font-bold text-white p-2 rounded-xl'> Add to cart</button>
                         <button onClick={checkout} className='bg-yellow-400 m-4 text-xl font-bold text-white p-2 rounded-xl'> Buy now</button>
                     </div>
                 </div>

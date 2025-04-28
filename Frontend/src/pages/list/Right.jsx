@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import AddToCart from './../../components/AddToCart';
 import LoaderWithKeyframes from './../../components/Loaders.jsx';
 import ErrorUI from './../../components/ErrorUI.jsx';
 import { useContracts } from './../../components/useContracts';
@@ -70,6 +69,27 @@ export default function Right({ type, filter, sortBy }) {
         setFilteredData(filtered);
     }, [rawProductData, filter, sortBy]);
 
+    const handleAddToCart = (id) => {
+        const numericId = Number(id);
+        let existing = [];
+        try {
+            existing = JSON.parse(localStorage.getItem('cart') || '[]');
+            if (!Array.isArray(existing)) existing = [];
+        } catch {
+            existing = [];
+        }
+        existing = existing.map(item => Number(item));
+        const merged = [...existing, numericId];
+        const deduped = Array.from(new Set(merged));
+        localStorage.setItem('cart', JSON.stringify(deduped));
+        if (existing.includes(numericId)) {
+            alert('This item was already in your cart.');
+        } else {
+            alert('Added to cart!');
+        }
+    };
+
+
     return (
         <div className='float-r w-[70%] md:w-[75%] flex'>
             <ul className="flex-col w-full">
@@ -100,7 +120,7 @@ export default function Right({ type, filter, sortBy }) {
                                         {item.price}gwei
                                     </div>
                                 </Link>
-                                <AddToCart id={item.id} />
+                                <button onClick={() => { handleAddToCart(item.id) }} className='bg-teal-500 m-4 text-l md:text-xl font-bold text-white p-2 rounded-xl'>Add to cart</button>
                             </div>
                         </div>
                     </li>
